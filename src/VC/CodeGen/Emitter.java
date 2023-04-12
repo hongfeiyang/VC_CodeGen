@@ -12,13 +12,64 @@
 
 package VC.CodeGen;
 
-import java.util.LinkedList;
-import java.util.Enumeration;
-import java.util.ListIterator;
-
-import VC.ASTs.*;
 import VC.ErrorReporter;
 import VC.StdEnvironment;
+import VC.ASTs.AST;
+import VC.ASTs.Arg;
+import VC.ASTs.ArgList;
+import VC.ASTs.ArrayExpr;
+import VC.ASTs.ArrayExprList;
+import VC.ASTs.ArrayInitExpr;
+import VC.ASTs.ArrayType;
+import VC.ASTs.AssignExpr;
+import VC.ASTs.BinaryExpr;
+import VC.ASTs.BooleanExpr;
+import VC.ASTs.BooleanLiteral;
+import VC.ASTs.BooleanType;
+import VC.ASTs.BreakStmt;
+import VC.ASTs.CallExpr;
+import VC.ASTs.CompoundStmt;
+import VC.ASTs.ContinueStmt;
+import VC.ASTs.DeclList;
+import VC.ASTs.EmptyArgList;
+import VC.ASTs.EmptyArrayExprList;
+import VC.ASTs.EmptyCompStmt;
+import VC.ASTs.EmptyDeclList;
+import VC.ASTs.EmptyExpr;
+import VC.ASTs.EmptyParaList;
+import VC.ASTs.EmptyStmt;
+import VC.ASTs.EmptyStmtList;
+import VC.ASTs.ErrorType;
+import VC.ASTs.ExprStmt;
+import VC.ASTs.FloatExpr;
+import VC.ASTs.FloatLiteral;
+import VC.ASTs.FloatType;
+import VC.ASTs.ForStmt;
+import VC.ASTs.FuncDecl;
+import VC.ASTs.GlobalVarDecl;
+import VC.ASTs.Ident;
+import VC.ASTs.IfStmt;
+import VC.ASTs.IntExpr;
+import VC.ASTs.IntLiteral;
+import VC.ASTs.IntType;
+import VC.ASTs.List;
+import VC.ASTs.LocalVarDecl;
+import VC.ASTs.Operator;
+import VC.ASTs.ParaDecl;
+import VC.ASTs.ParaList;
+import VC.ASTs.Program;
+import VC.ASTs.ReturnStmt;
+import VC.ASTs.SimpleVar;
+import VC.ASTs.StmtList;
+import VC.ASTs.StringExpr;
+import VC.ASTs.StringLiteral;
+import VC.ASTs.StringType;
+import VC.ASTs.Type;
+import VC.ASTs.UnaryExpr;
+import VC.ASTs.VarExpr;
+import VC.ASTs.Visitor;
+import VC.ASTs.VoidType;
+import VC.ASTs.WhileStmt;
 
 public final class Emitter implements Visitor {
 
@@ -30,29 +81,30 @@ public final class Emitter implements Visitor {
   public Emitter(String inputFilename, ErrorReporter reporter) {
     this.inputFilename = inputFilename;
     errorReporter = reporter;
-    
+
     int i = inputFilename.lastIndexOf('.');
     if (i > 0)
       classname = inputFilename.substring(0, i);
     else
       classname = inputFilename;
-    
+
   }
 
   // PRE: ast must be a Program node
 
   public final void gen(AST ast) {
-    ast.visit(this, null); 
+    ast.visit(this, null);
     JVM.dump(classname + ".j");
   }
-    
+
   // Programs
   public Object visitProgram(Program ast, Object o) {
-     /** This method works for scalar variables only. You need to modify
-         it to handle all array-related declarations and initialisations.
-      **/ 
+    /**
+     * This method works for scalar variables only. You need to modify
+     * it to handle all array-related declarations and initialisations.
+     **/
 
-    // Generates the default constructor initialiser 
+    // Generates the default constructor initialiser
     emit(JVM.CLASS, "public", classname);
     emit(JVM.SUPER, "java/lang/Object");
 
@@ -61,21 +113,21 @@ public final class Emitter implements Visitor {
     // Three subpasses:
 
     // (1) Generate .field definition statements since
-    //     these are required to appear before method definitions
+    // these are required to appear before method definitions
     List list = ast.FL;
     while (!list.isEmpty()) {
       DeclList dlAST = (DeclList) list;
       if (dlAST.D instanceof GlobalVarDecl) {
         GlobalVarDecl vAST = (GlobalVarDecl) dlAST.D;
         emit(JVM.STATIC_FIELD, vAST.I.spelling, VCtoJavaType(vAST.T));
-        }
+      }
       list = dlAST.DL;
     }
 
     emit("");
 
     // (2) Generate <clinit> for global variables (assumed to be static)
- 
+
     emit("; standard class static initializer ");
     emit(JVM.METHOD_START, "static <clinit>()V");
     emit("");
@@ -98,20 +150,20 @@ public final class Emitter implements Visitor {
             emit(JVM.ICONST_0);
           frame.push();
         }
-        emitPUTSTATIC(VCtoJavaType(vAST.T), vAST.I.spelling); 
+        emitPUTSTATIC(VCtoJavaType(vAST.T), vAST.I.spelling);
         frame.pop();
       }
       list = dlAST.DL;
     }
-   
+
     emit("");
     emit("; set limits used by this method");
     emit(JVM.LIMIT, "locals", frame.getNewIndex());
 
-   // emit(JVM.LIMIT, "stack", frame.getMaximumStackSize());
+    // emit(JVM.LIMIT, "stack", frame.getMaximumStackSize());
     // changed by the marker
     emit(JVM.LIMIT, "stack", 50);
-    
+
     emit(JVM.RETURN);
     emit(JVM.METHOD_END, "method");
 
@@ -140,18 +192,20 @@ public final class Emitter implements Visitor {
   }
 
   public Object visitCompoundStmt(CompoundStmt ast, Object o) {
-    Frame frame = (Frame) o; 
+    Frame frame = (Frame) o;
 
     String scopeStart = frame.getNewLabel();
     String scopeEnd = frame.getNewLabel();
     frame.scopeStart.push(scopeStart);
     frame.scopeEnd.push(scopeEnd);
-   
+
     emit(scopeStart + ":");
     if (ast.parent instanceof FuncDecl) {
       if (((FuncDecl) ast.parent).I.spelling.equals("main")) {
-        emit(JVM.VAR, "0 is argv [Ljava/lang/String; from " + (String) frame.scopeStart.peek() + " to " +  (String) frame.scopeEnd.peek());
-        emit(JVM.VAR, "1 is vc$ L" + classname + "; from " + (String) frame.scopeStart.peek() + " to " +  (String) frame.scopeEnd.peek());
+        emit(JVM.VAR, "0 is argv [Ljava/lang/String; from " + (String) frame.scopeStart.peek() + " to "
+            + (String) frame.scopeEnd.peek());
+        emit(JVM.VAR, "1 is vc$ L" + classname + "; from " + (String) frame.scopeStart.peek() + " to "
+            + (String) frame.scopeEnd.peek());
         // Generate code for the initialiser vc$ = new classname();
         emit(JVM.NEW, classname);
         emit(JVM.DUP);
@@ -161,7 +215,8 @@ public final class Emitter implements Visitor {
         emit(JVM.ASTORE_1);
         frame.pop();
       } else {
-        emit(JVM.VAR, "0 is this L" + classname + "; from " + (String) frame.scopeStart.peek() + " to " +  (String) frame.scopeEnd.peek());
+        emit(JVM.VAR, "0 is this L" + classname + "; from " + (String) frame.scopeStart.peek() + " to "
+            + (String) frame.scopeEnd.peek());
         ((FuncDecl) ast.parent).PL.visit(this, o);
       }
     }
@@ -174,23 +229,23 @@ public final class Emitter implements Visitor {
     return null;
   }
 
-Object visitReturnStmt(ReturnStmt ast, Object o) {
-    Frame frame = (Frame)o;
+  public Object visitReturnStmt(ReturnStmt ast, Object o) {
+    Frame frame = (Frame) o;
 
-/*
-  int main() { return 0; } must be interpretted as 
-  public static void main(String[] args) { return ; }
-  Therefore, "return expr", if present in the main of a VC program
-  must be translated into a RETURN rather than IRETURN instruction.
-*/
+    /*
+     * int main() { return 0; } must be interpretted as
+     * public static void main(String[] args) { return ; }
+     * Therefore, "return expr", if present in the main of a VC program
+     * must be translated into a RETURN rather than IRETURN instruction.
+     */
 
-     if (frame.isMain())  {
-        emit(JVM.RETURN);
-        return null;
-     }
+    if (frame.isMain()) {
+      emit(JVM.RETURN);
+      return null;
+    }
 
-// Your other code goes here
-         
+    // Your other code goes here
+    return null;
   }
 
   public Object visitEmptyStmtList(EmptyStmtList ast, Object o) {
@@ -259,36 +314,36 @@ Object visitReturnStmt(ReturnStmt ast, Object o) {
       FuncDecl fAST = (FuncDecl) ast.I.decl;
 
       // all functions except main are assumed to be instance methods
-      if (frame.isMain()) 
+      if (frame.isMain())
         emit("aload_1"); // vc.funcname(...)
       else
         emit("aload_0"); // this.funcname(...)
       frame.push();
 
       ast.AL.visit(this, o);
-    
+
       String retType = VCtoJavaType(fAST.T);
-      
+
       // The types of the parameters of the called function are not
       // directly available in the FuncDecl node but can be gathered
       // by traversing its field PL.
 
       StringBuffer argsTypes = new StringBuffer("");
       List fpl = fAST.PL;
-      while (! fpl.isEmpty()) {
+      while (!fpl.isEmpty()) {
         if (((ParaList) fpl).P.T.equals(StdEnvironment.booleanType))
-          argsTypes.append("Z");         
+          argsTypes.append("Z");
         else if (((ParaList) fpl).P.T.equals(StdEnvironment.intType))
-          argsTypes.append("I");         
+          argsTypes.append("I");
         else
-          argsTypes.append("F");         
+          argsTypes.append("F");
         fpl = ((ParaList) fpl).PL;
       }
-      
+
       emit("invokevirtual", classname + "/" + fname + "(" + argsTypes + ")" + retType);
       frame.pop(argsTypes.length() + 1);
 
-      if (! retType.equals("V"))
+      if (!retType.equals("V"))
         frame.push();
     }
     return null;
@@ -332,26 +387,26 @@ Object visitReturnStmt(ReturnStmt ast, Object o) {
 
   public Object visitFuncDecl(FuncDecl ast, Object o) {
 
-    Frame frame; 
+    Frame frame;
 
     if (ast.I.spelling.equals("main")) {
 
-       frame = new Frame(true);
+      frame = new Frame(true);
 
       // Assume that main has one String parameter and reserve 0 for it
-      frame.getNewIndex(); 
+      frame.getNewIndex();
 
-      emit(JVM.METHOD_START, "public static main([Ljava/lang/String;)V"); 
+      emit(JVM.METHOD_START, "public static main([Ljava/lang/String;)V");
       // Assume implicitly that
-      //      classname vc$; 
+      // classname vc$;
       // appears before all local variable declarations.
       // (1) Reserve 1 for this object reference.
 
-      frame.getNewIndex(); 
+      frame.getNewIndex();
 
     } else {
 
-       frame = new Frame(false);
+      frame = new Frame(false);
 
       // all other programmer-defined functions are treated as if
       // they were instance methods
@@ -365,13 +420,13 @@ Object visitReturnStmt(ReturnStmt ast, Object o) {
 
       StringBuffer argsTypes = new StringBuffer("");
       List fpl = ast.PL;
-      while (! fpl.isEmpty()) {
+      while (!fpl.isEmpty()) {
         if (((ParaList) fpl).P.T.equals(StdEnvironment.booleanType))
-          argsTypes.append("Z");         
+          argsTypes.append("Z");
         else if (((ParaList) fpl).P.T.equals(StdEnvironment.intType))
-          argsTypes.append("I");         
+          argsTypes.append("I");
         else
-          argsTypes.append("F");         
+          argsTypes.append("F");
         fpl = ((ParaList) fpl).PL;
       }
 
@@ -380,28 +435,28 @@ Object visitReturnStmt(ReturnStmt ast, Object o) {
 
     ast.S.visit(this, frame);
 
-    // JVM requires an explicit return in every method. 
+    // JVM requires an explicit return in every method.
     // In VC, a function returning void may not contain a return, and
     // a function returning int or float is not guaranteed to contain
     // a return. Therefore, we add one at the end just to be sure.
 
     if (ast.T.equals(StdEnvironment.voidType)) {
       emit("");
-      emit("; return may not be present in a VC function returning void"); 
+      emit("; return may not be present in a VC function returning void");
       emit("; The following return inserted by the VC compiler");
-      emit(JVM.RETURN); 
+      emit(JVM.RETURN);
     } else if (ast.I.spelling.equals("main")) {
       // In case VC's main does not have a return itself
       emit(JVM.RETURN);
     } else
-      emit(JVM.NOP); 
+      emit(JVM.NOP);
 
     emit("");
     emit("; set limits used by this method");
     emit(JVM.LIMIT, "locals", frame.getNewIndex());
 
-//    emit(JVM.LIMIT, "stack", frame.getMaximumStackSize());
-//    changed by the marker
+    // emit(JVM.LIMIT, "stack", frame.getMaximumStackSize());
+    // changed by the marker
     emit(JVM.LIMIT, "stack", 50);
     emit(".end method");
 
@@ -418,11 +473,12 @@ Object visitReturnStmt(ReturnStmt ast, Object o) {
     ast.index = frame.getNewIndex();
     String T = VCtoJavaType(ast.T);
 
-    emit(JVM.VAR + " " + ast.index + " is " + ast.I.spelling + " " + T + " from " + (String) frame.scopeStart.peek() + " to " +  (String) frame.scopeEnd.peek());
+    emit(JVM.VAR + " " + ast.index + " is " + ast.I.spelling + " " + T + " from " + (String) frame.scopeStart.peek()
+        + " to " + (String) frame.scopeEnd.peek());
 
     if (!ast.E.isEmptyExpr()) {
       ast.E.visit(this, o);
-  
+
       if (ast.T.equals(StdEnvironment.floatType)) {
         emitFSTORE(ast.I);
       } else {
@@ -447,7 +503,8 @@ Object visitReturnStmt(ReturnStmt ast, Object o) {
     ast.index = frame.getNewIndex();
     String T = VCtoJavaType(ast.T);
 
-    emit(JVM.VAR + " " + ast.index + " is " + ast.I.spelling + " " + T + " from " + (String) frame.scopeStart.peek() + " to " +  (String) frame.scopeEnd.peek());
+    emit(JVM.VAR + " " + ast.index + " is " + ast.I.spelling + " " + T + " from " + (String) frame.scopeStart.peek()
+        + " to " + (String) frame.scopeEnd.peek());
     return null;
   }
 
@@ -494,7 +551,7 @@ Object visitReturnStmt(ReturnStmt ast, Object o) {
     return null;
   }
 
-  // Literals, Identifiers and Operators 
+  // Literals, Identifiers and Operators
 
   public Object visitIdent(Ident ast, Object o) {
     return null;
@@ -532,7 +589,7 @@ Object visitReturnStmt(ReturnStmt ast, Object o) {
     return null;
   }
 
-  // Variables 
+  // Variables
 
   public Object visitSimpleVar(SimpleVar ast, Object o) {
     return null;
@@ -540,11 +597,11 @@ Object visitReturnStmt(ReturnStmt ast, Object o) {
 
   // Auxiliary methods for byte code generation
 
-  // The following method appends an instruction directly into the JVM 
+  // The following method appends an instruction directly into the JVM
   // Code Store. It is called by all other overloaded emit methods.
 
   private void emit(String s) {
-    JVM.append(new Instruction(s)); 
+    JVM.append(new Instruction(s));
   }
 
   private void emit(String s1, String s2) {
@@ -587,12 +644,12 @@ Object visitReturnStmt(ReturnStmt ast, Object o) {
     String nextLabel = frame.getNewLabel();
 
     emit(opcode, falseLabel);
-    frame.pop(2); 
+    frame.pop(2);
     emit("iconst_0");
     emit("goto", nextLabel);
     emit(falseLabel + ":");
     emit(JVM.ICONST_1);
-    frame.push(); 
+    frame.push();
     emit(nextLabel + ":");
   }
 
@@ -628,74 +685,74 @@ Object visitReturnStmt(ReturnStmt ast, Object o) {
   }
 
   private void emitILOAD(int index) {
-    if (index >= 0 && index <= 3) 
-      emit(JVM.ILOAD + "_" + index); 
+    if (index >= 0 && index <= 3)
+      emit(JVM.ILOAD + "_" + index);
     else
-      emit(JVM.ILOAD, index); 
+      emit(JVM.ILOAD, index);
   }
 
   private void emitFLOAD(int index) {
-    if (index >= 0 && index <= 3) 
-      emit(JVM.FLOAD + "_"  + index); 
+    if (index >= 0 && index <= 3)
+      emit(JVM.FLOAD + "_" + index);
     else
-      emit(JVM.FLOAD, index); 
+      emit(JVM.FLOAD, index);
   }
 
   private void emitGETSTATIC(String T, String I) {
-    emit(JVM.GETSTATIC, classname + "/" + I, T); 
+    emit(JVM.GETSTATIC, classname + "/" + I, T);
   }
 
   private void emitISTORE(Ident ast) {
     int index;
     if (ast.decl instanceof ParaDecl)
-      index = ((ParaDecl) ast.decl).index; 
+      index = ((ParaDecl) ast.decl).index;
     else
-      index = ((LocalVarDecl) ast.decl).index; 
-    
-    if (index >= 0 && index <= 3) 
-      emit(JVM.ISTORE + "_" + index); 
+      index = ((LocalVarDecl) ast.decl).index;
+
+    if (index >= 0 && index <= 3)
+      emit(JVM.ISTORE + "_" + index);
     else
-      emit(JVM.ISTORE, index); 
+      emit(JVM.ISTORE, index);
   }
 
   private void emitFSTORE(Ident ast) {
     int index;
     if (ast.decl instanceof ParaDecl)
-      index = ((ParaDecl) ast.decl).index; 
+      index = ((ParaDecl) ast.decl).index;
     else
-      index = ((LocalVarDecl) ast.decl).index; 
-    if (index >= 0 && index <= 3) 
-      emit(JVM.FSTORE + "_" + index); 
+      index = ((LocalVarDecl) ast.decl).index;
+    if (index >= 0 && index <= 3)
+      emit(JVM.FSTORE + "_" + index);
     else
-      emit(JVM.FSTORE, index); 
+      emit(JVM.FSTORE, index);
   }
 
   private void emitPUTSTATIC(String T, String I) {
-    emit(JVM.PUTSTATIC, classname + "/" + I, T); 
+    emit(JVM.PUTSTATIC, classname + "/" + I, T);
   }
 
   private void emitICONST(int value) {
     if (value == -1)
-      emit(JVM.ICONST_M1); 
-    else if (value >= 0 && value <= 5) 
-      emit(JVM.ICONST + "_" + value); 
-    else if (value >= -128 && value <= 127) 
-      emit(JVM.BIPUSH, value); 
+      emit(JVM.ICONST_M1);
+    else if (value >= 0 && value <= 5)
+      emit(JVM.ICONST + "_" + value);
+    else if (value >= -128 && value <= 127)
+      emit(JVM.BIPUSH, value);
     else if (value >= -32768 && value <= 32767)
-      emit(JVM.SIPUSH, value); 
-    else 
-      emit(JVM.LDC, value); 
+      emit(JVM.SIPUSH, value);
+    else
+      emit(JVM.LDC, value);
   }
 
   private void emitFCONST(float value) {
-    if(value == 0.0)
-      emit(JVM.FCONST_0); 
-    else if(value == 1.0)
-      emit(JVM.FCONST_1); 
-    else if(value == 2.0)
-      emit(JVM.FCONST_2); 
-    else 
-      emit(JVM.LDC, value); 
+    if (value == 0.0)
+      emit(JVM.FCONST_0);
+    else if (value == 1.0)
+      emit(JVM.FCONST_1);
+    else if (value == 2.0)
+      emit(JVM.FCONST_2);
+    else
+      emit(JVM.LDC, value);
   }
 
   private void emitBCONST(boolean value) {
@@ -714,6 +771,102 @@ Object visitReturnStmt(ReturnStmt ast, Object o) {
       return "F";
     else // if (t.equals(StdEnvironment.voidType))
       return "V";
+  }
+
+  @Override
+  public Object visitEmptyArrayExprList(EmptyArrayExprList ast, Object o) {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("Unimplemented method 'visitEmptyArrayExprList'");
+  }
+
+  @Override
+  public Object visitIfStmt(IfStmt ast, Object o) {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("Unimplemented method 'visitIfStmt'");
+  }
+
+  @Override
+  public Object visitWhileStmt(WhileStmt ast, Object o) {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("Unimplemented method 'visitWhileStmt'");
+  }
+
+  @Override
+  public Object visitForStmt(ForStmt ast, Object o) {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("Unimplemented method 'visitForStmt'");
+  }
+
+  @Override
+  public Object visitBreakStmt(BreakStmt ast, Object o) {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("Unimplemented method 'visitBreakStmt'");
+  }
+
+  @Override
+  public Object visitContinueStmt(ContinueStmt ast, Object o) {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("Unimplemented method 'visitContinueStmt'");
+  }
+
+  @Override
+  public Object visitExprStmt(ExprStmt ast, Object o) {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("Unimplemented method 'visitExprStmt'");
+  }
+
+  @Override
+  public Object visitUnaryExpr(UnaryExpr ast, Object o) {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("Unimplemented method 'visitUnaryExpr'");
+  }
+
+  @Override
+  public Object visitBinaryExpr(BinaryExpr ast, Object o) {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("Unimplemented method 'visitBinaryExpr'");
+  }
+
+  @Override
+  public Object visitArrayInitExpr(ArrayInitExpr ast, Object o) {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("Unimplemented method 'visitArrayInitExpr'");
+  }
+
+  @Override
+  public Object visitArrayExprList(ArrayExprList ast, Object o) {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("Unimplemented method 'visitArrayExprList'");
+  }
+
+  @Override
+  public Object visitArrayExpr(ArrayExpr ast, Object o) {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("Unimplemented method 'visitArrayExpr'");
+  }
+
+  @Override
+  public Object visitVarExpr(VarExpr ast, Object o) {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("Unimplemented method 'visitVarExpr'");
+  }
+
+  @Override
+  public Object visitAssignExpr(AssignExpr ast, Object o) {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("Unimplemented method 'visitAssignExpr'");
+  }
+
+  @Override
+  public Object visitStringType(StringType ast, Object o) {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("Unimplemented method 'visitStringType'");
+  }
+
+  @Override
+  public Object visitArrayType(ArrayType ast, Object o) {
+    // TODO Auto-generated method stub
+    throw new UnsupportedOperationException("Unimplemented method 'visitArrayType'");
   }
 
 }
