@@ -1,0 +1,469 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="ff26ef39-2d16-4399-a31e-5cad53da35a1" name="Changes" comment="fixed break and continue in for and while&#10;fixed for loop guard condition checking">
+      <change afterPath="$PROJECT_DIR$/src/VC/Checker/t0.test" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/VC/Checker/Checker.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/VC/Checker/Checker.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/VC/Checker/t0.vc" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/VC/Makefile" beforeDir="false" afterPath="$PROJECT_DIR$/src/VC/Makefile" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitToolBoxStore">
+    <option name="projectConfigVersion" value="5" />
+    <option name="recentBranches">
+      <RecentBranches>
+        <option name="branchesForRepo">
+          <list>
+            <RecentBranchesForRepo>
+              <option name="branches">
+                <list>
+                  <RecentBranch>
+                    <option name="branchName" value="checker" />
+                    <option name="lastUsedInstant" value="1680167472" />
+                  </RecentBranch>
+                  <RecentBranch>
+                    <option name="branchName" value="main" />
+                    <option name="lastUsedInstant" value="1680167471" />
+                  </RecentBranch>
+                </list>
+              </option>
+              <option name="repositoryRootUrl" value="file://$PROJECT_DIR$" />
+            </RecentBranchesForRepo>
+          </list>
+        </option>
+      </RecentBranches>
+    </option>
+  </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectId" id="2MuUsOZjgh1Tr6OLmAwSbYJw4lG" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_ADD_EXTERNAL_FILES&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;dart.analysis.tool.window.visible&quot;: &quot;false&quot;,
+    &quot;full.screen.before.presentation.mode&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;checker&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Modules&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
+    &quot;show.migrate.to.gradle.popup&quot;: &quot;false&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/VC/Checker" />
+      <recent name="$PROJECT_DIR$/src/VC/Parser" />
+      <recent name="$PROJECT_DIR$/src/VC" />
+      <recent name="$PROJECT_DIR$/src" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Application.checker00">
+    <configuration default="true" type="Application" factoryName="Application">
+      <module name="VC" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="checker00" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="VC.vc" />
+      <module name="VC" />
+      <option name="PROGRAM_PARAMETERS" value="./src/VC/Checker/t0.test" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="checker01 No Tree" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="VC.vc" />
+      <module name="VC" />
+      <option name="PROGRAM_PARAMETERS" value="./src/VC/Checker/t1.vc" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="checker01" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="VC.vc" />
+      <module name="VC" />
+      <option name="PROGRAM_PARAMETERS" value="-d 4 ./src/VC/Checker/t1.vc" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="checker02 No Tree" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="VC.vc" />
+      <module name="VC" />
+      <option name="PROGRAM_PARAMETERS" value="./src/VC/Checker/t2.vc" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="checker02" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="VC.vc" />
+      <module name="VC" />
+      <option name="PROGRAM_PARAMETERS" value="-d 4 ./src/VC/Checker/t2.vc" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="t00" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="VC.vc" />
+      <module name="VC" />
+      <option name="PROGRAM_PARAMETERS" value="-astp ./src/VC/Parser/t0.vc" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="t01" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="VC.vc" />
+      <module name="VC" />
+      <option name="PROGRAM_PARAMETERS" value="./src/VC/Parser/t1.vc" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="t02" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="VC.vc" />
+      <module name="VC" />
+      <option name="PROGRAM_PARAMETERS" value="./src/VC/Parser/t2.vc" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="t03" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="VC.vc" />
+      <module name="VC" />
+      <option name="PROGRAM_PARAMETERS" value="./src/VC/Parser/t3.vc" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="t04" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="VC.vc" />
+      <module name="VC" />
+      <option name="PROGRAM_PARAMETERS" value="./src/VC/Parser/t4.vc" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="t05" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="VC.vc" />
+      <module name="VC" />
+      <option name="PROGRAM_PARAMETERS" value="-astp ./src/VC/Parser/t5.vc" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="t07" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="VC.vc" />
+      <module name="VC" />
+      <option name="PROGRAM_PARAMETERS" value="./src/VC/Parser/t7.vc" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="t10" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="VC.vc" />
+      <module name="VC" />
+      <option name="PROGRAM_PARAMETERS" value="./src/VC/Parser/t10.vc" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="t13" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="VC.vc" />
+      <module name="VC" />
+      <option name="PROGRAM_PARAMETERS" value="./src/VC/Parser/t13.vc" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="t14" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="VC.vc" />
+      <module name="VC" />
+      <option name="PROGRAM_PARAMETERS" value="./src/VC/Parser/t14.vc" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="t18" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="VC.vc" />
+      <module name="VC" />
+      <option name="PROGRAM_PARAMETERS" value="./src/VC/Parser/t18.vc" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="t40" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="VC.vc" />
+      <module name="VC" />
+      <option name="PROGRAM_PARAMETERS" value="./src/VC/Parser/t40.vc" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="t43" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="VC.vc" />
+      <module name="VC" />
+      <option name="PROGRAM_PARAMETERS" value="./src/VC/Parser/t43.vc" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="t45" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="VC.vc" />
+      <module name="VC" />
+      <option name="PROGRAM_PARAMETERS" value="./src/VC/Parser/t45.vc" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="t46" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="VC.vc" />
+      <module name="VC" />
+      <option name="PROGRAM_PARAMETERS" value="./src/VC/Parser/t46.vc" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="t47" type="Application" factoryName="Application">
+      <option name="MAIN_CLASS_NAME" value="VC.vc" />
+      <module name="VC" />
+      <option name="PROGRAM_PARAMETERS" value="-astp ./src/VC/Parser/t47.vc" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <list>
+      <item itemvalue="Application.checker00" />
+      <item itemvalue="Application.checker01" />
+      <item itemvalue="Application.checker01 No Tree" />
+      <item itemvalue="Application.checker02" />
+      <item itemvalue="Application.checker02 No Tree" />
+      <item itemvalue="Application.t00" />
+      <item itemvalue="Application.t01" />
+      <item itemvalue="Application.t02" />
+      <item itemvalue="Application.t03" />
+      <item itemvalue="Application.t04" />
+      <item itemvalue="Application.t05" />
+      <item itemvalue="Application.t07" />
+      <item itemvalue="Application.t10" />
+      <item itemvalue="Application.t13" />
+      <item itemvalue="Application.t14" />
+      <item itemvalue="Application.t18" />
+      <item itemvalue="Application.t40" />
+      <item itemvalue="Application.t43" />
+      <item itemvalue="Application.t45" />
+      <item itemvalue="Application.t46" />
+      <item itemvalue="Application.t47" />
+    </list>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="ff26ef39-2d16-4399-a31e-5cad53da35a1" name="Changes" comment="" />
+      <created>1678617166736</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1678617166736</updated>
+      <workItem from="1678617167783" duration="45106000" />
+      <workItem from="1678882908810" duration="6604000" />
+      <workItem from="1678953248132" duration="4199000" />
+      <workItem from="1678957461774" duration="13494000" />
+      <workItem from="1679117411227" duration="1134000" />
+      <workItem from="1680085856956" duration="4268000" />
+      <workItem from="1680167513737" duration="20000000" />
+      <workItem from="1680267643233" duration="8735000" />
+      <workItem from="1680286559095" duration="16000" />
+      <workItem from="1680339810214" duration="4000" />
+      <workItem from="1680339870290" duration="122000" />
+      <workItem from="1680340041899" duration="32253000" />
+      <workItem from="1680413780402" duration="2513000" />
+      <workItem from="1680431942353" duration="5423000" />
+      <workItem from="1680441833441" duration="951000" />
+      <workItem from="1680476394360" duration="876000" />
+      <workItem from="1680609475446" duration="3370000" />
+      <workItem from="1680789174575" duration="656000" />
+      <workItem from="1680789838531" duration="209000" />
+      <workItem from="1681302265056" duration="988000" />
+    </task>
+    <task id="LOCAL-00001" summary="Parser now recognises each node, next step would be to set the correct source position to draw the tree">
+      <created>1678798132256</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1678798132256</updated>
+    </task>
+    <task id="LOCAL-00002" summary="Parses list correctly, &#10;ArrayInitExpr and BinExpr are not parsed correctly">
+      <created>1678986694592</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1678986694592</updated>
+    </task>
+    <task id="LOCAL-00003" summary="added diff to make file targets">
+      <created>1678986714721</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1678986714721</updated>
+    </task>
+    <task id="LOCAL-00004" summary="start implementing Checker">
+      <created>1680086208369</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1680086208369</updated>
+    </task>
+    <task id="LOCAL-00005" summary="Added Decompiled Parser&#10;Formatted Checker">
+      <created>1680168942712</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1680168942712</updated>
+    </task>
+    <task id="LOCAL-00006" summary="Added Parser$TypeAndIdent.java">
+      <created>1680168993381</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1680168993381</updated>
+    </task>
+    <task id="LOCAL-00007" summary="Implemented FuncDecl, VarDecl, StmtList">
+      <created>1680190481251</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1680190481251</updated>
+    </task>
+    <task id="LOCAL-00008" summary="T1 is now 100% aligned with sample solution, functions error checking is now complete&#10;&#10;Next would be checking scalars&#10;arrays, and work on binary expression checking for all operators">
+      <created>1680286371565</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1680286371565</updated>
+    </task>
+    <task id="LOCAL-00009" summary="fixed return statement type checking">
+      <created>1680340915377</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1680340915377</updated>
+    </task>
+    <task id="LOCAL-00010" summary="added array type checking for local var decl">
+      <created>1680356764034</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1680356764034</updated>
+    </task>
+    <task id="LOCAL-00011" summary="finished array">
+      <created>1680372399850</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1680372399850</updated>
+    </task>
+    <task id="LOCAL-00012" summary="renamed vars for better clarity">
+      <created>1680372651052</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1680372651052</updated>
+    </task>
+    <task id="LOCAL-00013" summary="array decl without size decl with initialiser will now has size auto filled">
+      <created>1680415202689</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1680415202689</updated>
+    </task>
+    <task id="LOCAL-00014" summary="now reports error eagerly for bin expressions, even if error is not caused by this expression but by its sub-expressions.&#10;&#10;now reports use of array as scalar more strictly.">
+      <created>1680439207733</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1680439207733</updated>
+    </task>
+    <task id="LOCAL-00015" summary="fixed break and continue in for and while&#10;fixed for loop guard condition checking">
+      <created>1680789783904</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1680789783904</updated>
+    </task>
+    <option name="localTasksCounter" value="16" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="UnknownFeatures">
+    <option featureType="com.intellij.fileTypeFactory" implementationName="*.sol" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Updated Scanner package with source code" />
+    <MESSAGE value="Formatted Parser.java with IntelliJ formatter" />
+    <MESSAGE value="Parser now recognises each node, next step would be to set the correct source position to draw the tree" />
+    <MESSAGE value="Parses list correctly, &#10;ArrayInitExpr and BinExpr are not parsed correctly" />
+    <MESSAGE value="added diff to make file targets" />
+    <MESSAGE value="start implementing Checker" />
+    <MESSAGE value="Added Decompiled Parser&#10;Formatted Checker" />
+    <MESSAGE value="Added Parser$TypeAndIdent.java" />
+    <MESSAGE value="Implemented FuncDecl, VarDecl, StmtList" />
+    <MESSAGE value="T1 is now 100% aligned with sample solution, functions error checking is now complete&#10;&#10;Next would be checking scalars&#10;arrays, and work on binary expression checking for all operators" />
+    <MESSAGE value="fixed return statement type checking" />
+    <MESSAGE value="added array type checking for local var decl" />
+    <MESSAGE value="finished array" />
+    <MESSAGE value="renamed vars for better clarity" />
+    <MESSAGE value="array decl without size decl with initialiser will now has size auto filled" />
+    <MESSAGE value="now reports error eagerly for bin expressions, even if error is not caused by this expression but by its sub-expressions.&#10;&#10;now reports use of array as scalar more strictly." />
+    <MESSAGE value="fixed break and continue in for and while&#10;fixed for loop guard condition checking" />
+    <option name="LAST_COMMIT_MESSAGE" value="fixed break and continue in for and while&#10;fixed for loop guard condition checking" />
+  </component>
+  <component name="XDebuggerManager">
+    <pin-to-top-manager>
+      <pinned-members>
+        <PinnedItemInfo parentTag="VC.ASTs.GlobalVarDecl" memberName="I" />
+        <PinnedItemInfo parentTag="VC.ASTs.ParaDecl" memberName="I" />
+      </pinned-members>
+    </pin-to-top-manager>
+  </component>
+  <component name="XSLT-Support.FileAssociations.UIState">
+    <expand />
+    <select />
+  </component>
+</project>
