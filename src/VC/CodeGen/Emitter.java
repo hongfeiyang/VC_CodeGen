@@ -12,6 +12,9 @@
 
 package VC.CodeGen;
 
+import java.util.HashMap;
+import java.util.HashSet;
+
 import VC.ErrorReporter;
 import VC.StdEnvironment;
 import VC.ASTs.AST;
@@ -30,6 +33,7 @@ import VC.ASTs.BreakStmt;
 import VC.ASTs.CallExpr;
 import VC.ASTs.CompoundStmt;
 import VC.ASTs.ContinueStmt;
+import VC.ASTs.Decl;
 import VC.ASTs.DeclList;
 import VC.ASTs.EmptyArgList;
 import VC.ASTs.EmptyArrayExprList;
@@ -40,6 +44,7 @@ import VC.ASTs.EmptyParaList;
 import VC.ASTs.EmptyStmt;
 import VC.ASTs.EmptyStmtList;
 import VC.ASTs.ErrorType;
+import VC.ASTs.Expr;
 import VC.ASTs.ExprStmt;
 import VC.ASTs.FloatExpr;
 import VC.ASTs.FloatLiteral;
@@ -243,8 +248,22 @@ public final class Emitter implements Visitor {
       emit(JVM.RETURN);
       return null;
     }
-
-    // Your other code goes here
+    ast.E.visit(this, o);
+    if (ast.E instanceof EmptyExpr) {
+      // also handles error type set by empty expressions, so we dont need to handle
+      // if (ast.E.type.isErrorType())
+      emit(JVM.RETURN);
+    } else if (ast.E.type.isFloatType()) {
+      emit(JVM.FRETURN);
+    } else if (ast.E.type.isIntType() || ast.E.type.isBooleanType()) {
+      // Int type and boolean type (which also translates to int)
+      // Array Var also eventually resolves to boolean float and int
+      emit(JVM.IRETURN);
+    }
+    // What about void expressions? e.g:
+    // void f() {
+    // return f();
+    // }
     return null;
   }
 
@@ -458,7 +477,7 @@ public final class Emitter implements Visitor {
     // emit(JVM.LIMIT, "stack", frame.getMaximumStackSize());
     // changed by the marker
     emit(JVM.LIMIT, "stack", 50);
-    emit(".end method");
+    emit(JVM.METHOD_END, "method");
 
     return null;
   }
@@ -592,6 +611,24 @@ public final class Emitter implements Visitor {
   // Variables
 
   public Object visitSimpleVar(SimpleVar ast, Object o) {
+    Frame frame = (Frame) o;
+
+    Decl decl = null;
+
+    if (ast.I.decl instanceof GlobalVarDecl) {
+      decl = (GlobalVarDecl) ast.I.decl;
+      emitGETSTATIC(decl.I.spelling, VCtoJavaType(decl.T));
+    } else {
+      decl = (Decl) ast.I.decl; // Both ParaDecl and LocalVarDecl
+      if (decl.T.equals(StdEnvironment.floatType)) {
+        emitFLOAD(decl.index);
+      } else { // boolean and int type, var cannot be void type (checked by checker)
+        emitILOAD(decl.index);
+      }
+    }
+
+    frame.push();
+
     return null;
   }
 
@@ -602,6 +639,7 @@ public final class Emitter implements Visitor {
 
   private void emit(String s) {
     JVM.append(new Instruction(s));
+    JVM.dump("test$.j");
   }
 
   private void emit(String s1, String s2) {
@@ -781,92 +819,325 @@ public final class Emitter implements Visitor {
 
   @Override
   public Object visitIfStmt(IfStmt ast, Object o) {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException("Unimplemented method 'visitIfStmt'");
+    Frame frame = (Frame) o;
+    String l1 = frame.getNewLabel();
+    String l2 = frame.getNewLabel();
+    ast.E.visit(this, o);
+    emit(JVM.IFEQ, l1);
+    ast.S1.visit(this, o);
+    emit(JVM.GOTO, l2);
+    emit(l1 + ":");
+    ast.S2.visit(this, o);
+    emit(l2 + ":");
+    return null;
   }
 
   @Override
   public Object visitWhileStmt(WhileStmt ast, Object o) {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException("Unimplemented method 'visitWhileStmt'");
+    Frame frame = (Frame) o;
+    String l1 = frame.getNewLabel();
+    String l2 = frame.getNewLabel();
+    // l1 is the start of the loop, continue needs to go to the start of the loop
+    frame.conStack.push(l1);
+    // l2 is the end of the loop, break needs to go to the end of the loop
+    frame.brkStack.push(l2);
+    emit(l1 + ":");
+    ast.E.visit(this, o);
+    // while condition is false, jump to l2, which is the end of the while loop
+    emit(JVM.IFNE, l2);
+    ast.S.visit(this, o);
+    emit(JVM.GOTO, l1);
+    emit(l2 + ":");
+    frame.conStack.pop();
+    frame.brkStack.pop();
+    return null;
   }
 
   @Override
   public Object visitForStmt(ForStmt ast, Object o) {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException("Unimplemented method 'visitForStmt'");
+    Frame frame = (Frame) o;
+    String l1 = frame.getNewLabel();
+    String l2 = frame.getNewLabel();
+    String l3 = frame.getNewLabel();
+
+    frame.conStack.push(l3); // l1 is the start of the update statement, after which the loop repeats
+    frame.brkStack.push(l2); // l2 is the end of the loop
+
+    ast.E1.visit(this, o);
+    // need to pop if this precondition is some useless shit
+    // eg int a; for (1; ; ) {}
+    // it will generate a iconst_1 that will need to be poped
+    popIfNeeded(ast.E1, frame);
+
+    emit(l1 + ":");
+    ast.E2.visit(this, o);
+    // if guard is false, jump to l2, which is the end of the for loop
+
+    if (!(ast.E2 instanceof EmptyExpr)) {
+      // handles the case where the guard is empty
+      // eg. for (i = 0; ; i++) {}
+      // do not generate any instructions, becuase there is nothing on the operand
+      // stack for any IFNE or IFEQ to operate on
+      emit(JVM.IFNE, l2);
+    }
+
+    ast.S.visit(this, o);
+
+    emit(l3 + ":"); // for continue to work correctly
+    // visit post operation after the body of the loop
+    ast.E3.visit(this, o);
+
+    // same reason as above E1 popIfNeeded, because you cannot prevent programmers
+    // from putting some random shit in the post expressions
+    popIfNeeded(ast.E1, frame);
+
+    emit(JVM.GOTO, l1);
+    emit(l2 + ":");
+
+    frame.brkStack.pop();
+    frame.conStack.pop();
+    return null;
   }
 
   @Override
   public Object visitBreakStmt(BreakStmt ast, Object o) {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException("Unimplemented method 'visitBreakStmt'");
+    Frame frame = (Frame) o;
+    String label = frame.brkStack.peek();
+    emit(JVM.GOTO, label);
+    return null;
   }
 
   @Override
   public Object visitContinueStmt(ContinueStmt ast, Object o) {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException("Unimplemented method 'visitContinueStmt'");
+    Frame frame = (Frame) o;
+    String label = frame.conStack.peek();
+    emit(JVM.GOTO, label);
+    return null;
+  }
+
+  private void popIfNeeded(Expr expr, Frame frame) {
+
+    if (expr instanceof CallExpr
+        && expr.type.isVoidType()) {
+      // f();
+      // If function has a return type, it has to leave something on the stack, as it
+      // is invoked inside another function, its return value can be discarded or
+      // poped by the other function
+      // so:
+      // int f() { return 1; }
+      // int g() { f(); return 2; }
+      // when f is called in g, its return value is left on top of the stack, we need
+      // to generate a pop to discard it becuase it is not assigned
+      //
+      // if f is a void function, it does not leave anything on the stack, so we do
+      // not need to generate a pop
+      return;
+    }
+
+    if (expr instanceof EmptyExpr) {
+      // ;
+      return;
+    }
+
+    if (expr instanceof AssignExpr) {
+      // a = b;
+      return;
+    }
+
+    emit(JVM.POP);
+    frame.pop();
   }
 
   @Override
   public Object visitExprStmt(ExprStmt ast, Object o) {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException("Unimplemented method 'visitExprStmt'");
+    ast.E.visit(this, o);
+
+    popIfNeeded(ast.E, (Frame) o);
+
+    return null;
   }
 
   @Override
   public Object visitUnaryExpr(UnaryExpr ast, Object o) {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException("Unimplemented method 'visitUnaryExpr'");
+    String op = ast.O.spelling;
+    Frame frame = (Frame) o;
+
+    ast.E.visit(this, o);
+    if (op.equals("i2f")) {
+      emit(JVM.I2F);
+    } else if (op.equals("i-")) {
+      emit(JVM.INEG);
+    } else if (op.equals("f-")) {
+      emit(JVM.FNEG);
+    } else if (op.equals("i!")) {
+      // if it is false on top of the stack, consume and go to l1 and leave a true on
+      // top of the stack
+      String l1 = frame.getNewLabel();
+      String l2 = frame.getNewLabel();
+      emit(JVM.IFEQ, l1);
+      // otherwise it is true on top of the stack, consume and leave a false
+      emitBCONST(false);
+      emit(JVM.GOTO, l2);
+      emit(l1 + ":");
+      emitBCONST(true);
+      emit(l2 + ":");
+
+      // Since we do not have XOR instruction, this is very inefficient.
+      // it should literall be:
+      // iconst_1 ; original value
+      // iconst_1 ; operator !
+      // xor ; result
+    }
+    return null;
   }
 
   @Override
   public Object visitBinaryExpr(BinaryExpr ast, Object o) {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException("Unimplemented method 'visitBinaryExpr'");
+    Frame frame = (Frame) o;
+    String op = ast.O.spelling;
+    HashMap<String, String> arithmeticOp = new HashMap<>() {
+      {
+        put("i+", JVM.IADD);
+        put("i-", JVM.ISUB);
+        put("i*", JVM.IMUL);
+        put("i/", JVM.IDIV);
+        put("f+", JVM.FADD);
+        put("f-", JVM.FSUB);
+        put("f*", JVM.FMUL);
+        put("f/", JVM.FDIV);
+      }
+    };
+
+    HashSet<String> cmpOp = new HashSet<>() {
+      {
+        add("i==");
+        add("i!=");
+        add("i<");
+        add("i<=");
+        add("i>");
+        add("i>=");
+        add("f==");
+        add("f!=");
+        add("f<");
+        add("f<=");
+        add("f>");
+        add("f>=");
+      }
+    };
+
+    if (arithmeticOp.containsKey(op)) {
+      ast.E1.visit(this, o);
+      ast.E2.visit(this, o);
+      emit(arithmeticOp.get(op));
+      // two operands are popped and result is pushed into operand stack, shrink the
+      // stack
+      frame.pop();
+    } else if (cmpOp.contains(op)) {
+      ast.E1.visit(this, o);
+      ast.E2.visit(this, o);
+      if (op.contains("f")) {
+        emitFCMP(op, frame);
+      } else if (op.contains("i")) {
+        emitIF_ICMPCOND(op, frame);
+      }
+      frame.pop();
+    } else if (op.equals("i&&")) {
+      String L1 = frame.getNewLabel();
+      String L2 = frame.getNewLabel();
+      ast.E1.visit(this, o);
+      emit(JVM.IFEQ, L1);
+      ast.E2.visit(this, o);
+      emit(JVM.IFEQ, L1);
+      emitICONST(1);
+      emit(JVM.GOTO, L2);
+      emit(L1 + ":");
+      emitICONST(0);
+      emit(L2 + ":");
+      frame.push();
+    } else if (op.equals("i||")) {
+      String L1 = frame.getNewLabel();
+      String L2 = frame.getNewLabel();
+      ast.E1.visit(this, o);
+      emit(JVM.IFNE, L1);
+      ast.E2.visit(this, o);
+      emit(JVM.IFNE, L1);
+      emitICONST(0);
+      emit(JVM.GOTO, L2);
+      emit(L1 + ":");
+      emitICONST(1);
+      emit(L2 + ":");
+      frame.push();
+    }
+    return null;
   }
 
   @Override
   public Object visitArrayInitExpr(ArrayInitExpr ast, Object o) {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException("Unimplemented method 'visitArrayInitExpr'");
+    return null;
   }
 
   @Override
   public Object visitArrayExprList(ArrayExprList ast, Object o) {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException("Unimplemented method 'visitArrayExprList'");
+    return null;
   }
 
   @Override
   public Object visitArrayExpr(ArrayExpr ast, Object o) {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException("Unimplemented method 'visitArrayExpr'");
+    return null;
   }
 
   @Override
   public Object visitVarExpr(VarExpr ast, Object o) {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException("Unimplemented method 'visitVarExpr'");
+    ast.V.visit(this, o);
+    return null;
   }
 
   @Override
   public Object visitAssignExpr(AssignExpr ast, Object o) {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException("Unimplemented method 'visitAssignExpr'");
+    // ast.E1.visit(this, o);
+
+    if (ast.E1 instanceof VarExpr) {
+      ast.E2.visit(this, o);
+      VarExpr varExpr = (VarExpr) ast.E1;
+      // currently we only have SimpleVar for Var type, safe to cast
+      SimpleVar simpleVar = (SimpleVar) varExpr.V;
+      Decl decl = (Decl) simpleVar.I.decl;
+
+      if (ast.parent instanceof AssignExpr) {
+        // For assignment chaining
+        // int a = b = c = 1;
+        emit(JVM.DUP);
+      }
+
+      // Generate store instruction
+
+      if (decl instanceof GlobalVarDecl) {
+        emitPUTSTATIC(VCtoJavaType(simpleVar.type), simpleVar.I.spelling);
+      } else {
+        // LocalVarDecl and ParaDecl
+        if (ast.E1.type.isFloatType()) {
+          emitFSTORE(simpleVar.I);
+        } else if (ast.E1.type.isBooleanType() || ast.E1.type.isIntType()) { // int, boolean
+          emitISTORE(simpleVar.I);
+        }
+      }
+
+    } else if (ast.E1 instanceof ArrayExpr) {
+
+    }
+
+    // TODO: arrays
+    return null;
   }
 
   @Override
   public Object visitStringType(StringType ast, Object o) {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException("Unimplemented method 'visitStringType'");
+    return null;
   }
 
   @Override
   public Object visitArrayType(ArrayType ast, Object o) {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException("Unimplemented method 'visitArrayType'");
+    return null;
   }
 
 }
