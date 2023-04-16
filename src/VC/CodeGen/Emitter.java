@@ -483,9 +483,9 @@ public final class Emitter implements Visitor {
     emit("; set limits used by this method");
     emit(JVM.LIMIT, "locals", frame.getNewIndex());
 
-    // emit(JVM.LIMIT, "stack", frame.getMaximumStackSize());
+    emit(JVM.LIMIT, "stack", frame.getMaximumStackSize());
     // changed by the marker
-    emit(JVM.LIMIT, "stack", 50);
+    // emit(JVM.LIMIT, "stack", 50);
     emit(JVM.METHOD_END, "method");
 
     return null;
@@ -510,9 +510,11 @@ public final class Emitter implements Visitor {
       // put size on top of the stack, size is guarenteed by checker?
       arrayType.E.visit(this, o);
       emit(JVM.NEWARRAY, arrayType.T.toString());
+      frame.push();
 
       if (ast.E.isEmptyExpr()) {
         emitASTORE(ast.index);
+        frame.pop();
       }
     }
 
@@ -919,7 +921,7 @@ public final class Emitter implements Visitor {
       // eg. for (i = 0; ; i++) {}
       // do not generate any instructions, becuase there is nothing on the operand
       // stack for any IFNE or IFEQ to operate on
-      emit(JVM.IFNE, l2);
+      emit(JVM.IFEQ, l2);
     }
 
     ast.S.visit(this, o);
