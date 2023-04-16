@@ -165,9 +165,9 @@ public final class Emitter implements Visitor {
     emit("; set limits used by this method");
     emit(JVM.LIMIT, "locals", frame.getNewIndex());
 
-    // emit(JVM.LIMIT, "stack", frame.getMaximumStackSize());
+    emit(JVM.LIMIT, "stack", frame.getMaximumStackSize());
     // changed by the marker
-    emit(JVM.LIMIT, "stack", 50);
+    // emit(JVM.LIMIT, "stack", 50);
 
     emit(JVM.RETURN);
     emit(JVM.METHOD_END, "method");
@@ -349,6 +349,9 @@ public final class Emitter implements Visitor {
 
       StringBuffer argsTypes = new StringBuffer("");
       List fpl = fAST.PL;
+
+      int numberOfArgs = 0;
+
       while (!fpl.isEmpty()) {
         if (((ParaList) fpl).P.T.equals(StdEnvironment.booleanType))
           argsTypes.append("Z");
@@ -360,12 +363,13 @@ public final class Emitter implements Visitor {
           ArrayType arrayType = (ArrayType) ((ParaList) fpl).P.T;
           argsTypes.append(VCtoJavaType(arrayType));
         }
+        numberOfArgs++;
 
         fpl = ((ParaList) fpl).PL;
       }
 
       emit("invokevirtual", classname + "/" + fname + "(" + argsTypes + ")" + retType);
-      frame.pop(argsTypes.length() + 1);
+      frame.pop(numberOfArgs + 1);
 
       if (!retType.equals("V"))
         frame.push();
@@ -684,7 +688,7 @@ public final class Emitter implements Visitor {
 
   private void emit(String s) {
     JVM.append(new Instruction(s));
-    JVM.dump("test$.j");
+    // uncomment to debug // JVM.dump("debug$.j");
   }
 
   private void emit(String s1, String s2) {
@@ -728,8 +732,8 @@ public final class Emitter implements Visitor {
 
     emit(opcode, falseLabel);
     frame.pop(2);
-    emit("iconst_0");
-    emit("goto", nextLabel);
+    emit(JVM.ICONST_0);
+    emit(JVM.GOTO, nextLabel);
     emit(falseLabel + ":");
     emit(JVM.ICONST_1);
     frame.push();
@@ -759,7 +763,7 @@ public final class Emitter implements Visitor {
     frame.pop(2);
     emit(opcode, falseLabel);
     emit(JVM.ICONST_0);
-    emit("goto", nextLabel);
+    emit(JVM.GOTO, nextLabel);
     emit(falseLabel + ":");
     emit(JVM.ICONST_1);
     frame.push();
@@ -867,6 +871,7 @@ public final class Emitter implements Visitor {
     String l2 = frame.getNewLabel();
     ast.E.visit(this, o);
     emit(JVM.IFEQ, l1);
+    frame.pop();
     ast.S1.visit(this, o);
     emit(JVM.GOTO, l2);
     emit(l1 + ":");
@@ -888,6 +893,7 @@ public final class Emitter implements Visitor {
     ast.E.visit(this, o);
     // while condition is false, jump to l2, which is the end of the while loop
     emit(JVM.IFEQ, l2);
+    frame.pop();
     ast.S.visit(this, o);
     emit(JVM.GOTO, l1);
     emit(l2 + ":");
@@ -922,6 +928,7 @@ public final class Emitter implements Visitor {
       // do not generate any instructions, becuase there is nothing on the operand
       // stack for any IFNE or IFEQ to operate on
       emit(JVM.IFEQ, l2);
+      frame.pop();
     }
 
     ast.S.visit(this, o);
@@ -1002,6 +1009,7 @@ public final class Emitter implements Visitor {
 
   @Override
   public Object visitUnaryExpr(UnaryExpr ast, Object o) {
+    Frame frame = (Frame) o;
     String op = ast.O.spelling;
 
     ast.E.visit(this, o);
@@ -1013,7 +1021,10 @@ public final class Emitter implements Visitor {
       emit(JVM.FNEG);
     } else if (op.equals("i!")) {
       emit(JVM.ICONST_1);
+      frame.push();
       emit(JVM.IXOR);
+      // IXOR consumes 2 operands and pushes 1
+      frame.pop();
     }
     return null;
   }
@@ -1056,8 +1067,7 @@ public final class Emitter implements Visitor {
       ast.E1.visit(this, o);
       ast.E2.visit(this, o);
       emit(arithmeticOp.get(op));
-      // two operands are popped and result is pushed into operand stack, shrink the
-      // stack
+      // arithmetic operations consume 2 operands and push 1
       frame.pop();
     } else if (cmpOp.contains(op)) {
       ast.E1.visit(this, o);
@@ -1067,39 +1077,42 @@ public final class Emitter implements Visitor {
       } else if (op.contains("i")) {
         emitIF_ICMPCOND(op, frame);
       }
-      frame.pop();
     } else if (op.equals("i&&")) {
       String L1 = frame.getNewLabel();
       String L2 = frame.getNewLabel();
       ast.E1.visit(this, o);
       emit(JVM.IFEQ, L1);
+      frame.pop();
       ast.E2.visit(this, o);
       emit(JVM.IFEQ, L1);
       emitICONST(1);
       emit(JVM.GOTO, L2);
       emit(L1 + ":");
       emitICONST(0);
-      emit(L2 + ":");
       frame.push();
+      emit(L2 + ":");
     } else if (op.equals("i||")) {
       String L1 = frame.getNewLabel();
       String L2 = frame.getNewLabel();
       ast.E1.visit(this, o);
       emit(JVM.IFNE, L1);
+      frame.pop();
       ast.E2.visit(this, o);
       emit(JVM.IFNE, L1);
       emitICONST(0);
       emit(JVM.GOTO, L2);
       emit(L1 + ":");
       emitICONST(1);
-      emit(L2 + ":");
       frame.push();
+      emit(L2 + ":");
     }
     return null;
   }
 
   @Override
   public Object visitArrayInitExpr(ArrayInitExpr ast, Object o) {
+
+    Frame frame = (Frame) o;
 
     List arrayExprList = ast.IL;
 
@@ -1109,8 +1122,10 @@ public final class Emitter implements Visitor {
 
       // we have access to E
       emit(JVM.DUP);
+      frame.push();
 
       emitICONST(currExprList.index);
+      frame.push();
 
       currExprList.E.visit(this, o);
 
@@ -1122,6 +1137,10 @@ public final class Emitter implements Visitor {
       } else { // if (currExprList.E.type.isIntType())
         emit(JVM.IASTORE);
       }
+
+      // iastore, bastore, fastore consumes 3 operands
+
+      frame.pop(3);
 
       arrayExprList = currExprList.EL;
     }
@@ -1142,6 +1161,8 @@ public final class Emitter implements Visitor {
 
   @Override
   public Object visitArrayExpr(ArrayExpr ast, Object o) {
+    Frame frame = (Frame) o;
+
     ast.V.visit(this, o); // generates aload
     ast.E.visit(this, o); // gnerates iconst_<n>
     // generates iaload or faload
@@ -1152,6 +1173,9 @@ public final class Emitter implements Visitor {
     } else {
       emit(JVM.IALOAD);
     }
+
+    // iaload, baload, faload consumes 2 operands and pushes 1 operand
+    frame.pop();
     return null;
   }
 
@@ -1163,8 +1187,8 @@ public final class Emitter implements Visitor {
 
   @Override
   public Object visitAssignExpr(AssignExpr ast, Object o) {
-    // ast.E1.visit(this, o);
 
+    Frame frame = (Frame) o;
     if (ast.E1 instanceof VarExpr) {
       ast.E2.visit(this, o);
       VarExpr varExpr = (VarExpr) ast.E1;
@@ -1176,6 +1200,7 @@ public final class Emitter implements Visitor {
         // For assignment chaining
         // int a = b = c = 1;
         emit(JVM.DUP);
+        frame.push();
       }
 
       // Generate store instruction
@@ -1190,6 +1215,8 @@ public final class Emitter implements Visitor {
           emitISTORE(simpleVar.I);
         }
       }
+      // istore, fstore, puststatic consumes 1 operand
+      frame.pop();
 
     } else if (ast.E1 instanceof ArrayExpr) {
 
@@ -1215,6 +1242,7 @@ public final class Emitter implements Visitor {
       } else {
         emit(JVM.IASTORE);
       }
+      frame.pop();
     }
 
     return null;
