@@ -887,7 +887,7 @@ public final class Emitter implements Visitor {
     emit(l1 + ":");
     ast.E.visit(this, o);
     // while condition is false, jump to l2, which is the end of the while loop
-    emit(JVM.IFNE, l2);
+    emit(JVM.IFEQ, l2);
     ast.S.visit(this, o);
     emit(JVM.GOTO, l1);
     emit(l2 + ":");
