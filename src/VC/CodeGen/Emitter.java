@@ -354,8 +354,13 @@ public final class Emitter implements Visitor {
           argsTypes.append("Z");
         else if (((ParaList) fpl).P.T.equals(StdEnvironment.intType))
           argsTypes.append("I");
-        else
+        else if (((ParaList) fpl).P.T.equals(StdEnvironment.floatType))
           argsTypes.append("F");
+        else if (((ParaList) fpl).P.T.isArrayType()) {
+          ArrayType arrayType = (ArrayType) ((ParaList) fpl).P.T;
+          argsTypes.append(VCtoJavaType(arrayType));
+        }
+
         fpl = ((ParaList) fpl).PL;
       }
 
@@ -444,8 +449,12 @@ public final class Emitter implements Visitor {
           argsTypes.append("Z");
         else if (((ParaList) fpl).P.T.equals(StdEnvironment.intType))
           argsTypes.append("I");
-        else
+        else if (((ParaList) fpl).P.T.equals(StdEnvironment.floatType))
           argsTypes.append("F");
+        else if (((ParaList) fpl).P.T.isArrayType()) {
+          ArrayType type = (ArrayType) ((ParaList) fpl).P.T;
+          argsTypes.append(VCtoJavaType(type));
+        }
         fpl = ((ParaList) fpl).PL;
       }
 
@@ -501,15 +510,20 @@ public final class Emitter implements Visitor {
       // put size on top of the stack, size is guarenteed by checker?
       arrayType.E.visit(this, o);
       emit(JVM.NEWARRAY, arrayType.T.toString());
-      emitASTORE(ast.index);
+
+      if (ast.E.isEmptyExpr()) {
+        emitASTORE(ast.index);
+      }
     }
 
     if (!ast.E.isEmptyExpr()) {
       ast.E.visit(this, o);
 
-      if (ast.T.equals(StdEnvironment.floatType)) {
+      if (ast.T.isArrayType()) {
+        emitASTORE(ast.index);
+      } else if (ast.T.equals(StdEnvironment.floatType)) {
         emitFSTORE(ast.I);
-      } else {
+      } else { // for int and boolean
         emitISTORE(ast.I);
       }
       frame.pop();
@@ -628,7 +642,7 @@ public final class Emitter implements Visitor {
 
     if (ast.I.decl instanceof GlobalVarDecl) {
       decl = (GlobalVarDecl) ast.I.decl;
-      emitGETSTATIC(decl.I.spelling, VCtoJavaType(decl.T));
+      emitGETSTATIC(VCtoJavaType(decl.T), decl.I.spelling);
     } else {
       decl = (Decl) ast.I.decl; // Both ParaDecl and LocalVarDecl
       if (decl.T.isArrayType()) {
@@ -1084,14 +1098,38 @@ public final class Emitter implements Visitor {
 
   @Override
   public Object visitArrayInitExpr(ArrayInitExpr ast, Object o) {
-    ast.IL.visit(this, o);
+
+    List arrayExprList = ast.IL;
+
+    while (!(arrayExprList instanceof EmptyArrayExprList)) {
+
+      ArrayExprList currExprList = (ArrayExprList) arrayExprList;
+
+      // we have access to E
+      emit(JVM.DUP);
+
+      emitICONST(currExprList.index);
+
+      currExprList.E.visit(this, o);
+
+      // generate store instruction
+      if (currExprList.E.type.isFloatType()) {
+        emit(JVM.FASTORE);
+      } else if (currExprList.E.type.isBooleanType()) {
+        emit(JVM.BASTORE);
+      } else { // if (currExprList.E.type.isIntType())
+        emit(JVM.IASTORE);
+      }
+
+      arrayExprList = currExprList.EL;
+    }
+
     return null;
   }
 
   @Override
   public Object visitArrayExprList(ArrayExprList ast, Object o) {
-    ast.E.visit(this, o);
-    ast.EL.visit(this, o);
+    // dont need to do anything, handled in visitArrayInitExpr
     return null;
   }
 
