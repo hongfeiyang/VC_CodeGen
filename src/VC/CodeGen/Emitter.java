@@ -495,6 +495,15 @@ public final class Emitter implements Visitor {
     emit(JVM.VAR + " " + ast.index + " is " + ast.I.spelling + " " + T + " from " + (String) frame.scopeStart.peek()
         + " to " + (String) frame.scopeEnd.peek());
 
+    if (ast.T.isArrayType()) {
+      // handle array decl eg. int a[5];
+      ArrayType arrayType = (ArrayType) ast.T;
+      // put size on top of the stack, size is guarenteed by checker?
+      arrayType.E.visit(this, o);
+      emit(JVM.NEWARRAY, arrayType.T.toString());
+      emitASTORE(ast.index);
+    }
+
     if (!ast.E.isEmptyExpr()) {
       ast.E.visit(this, o);
 
@@ -611,6 +620,8 @@ public final class Emitter implements Visitor {
   // Variables
 
   public Object visitSimpleVar(SimpleVar ast, Object o) {
+    // For load rather than store
+    // store handled at visitAssignExpr
     Frame frame = (Frame) o;
 
     Decl decl = null;
@@ -620,7 +631,9 @@ public final class Emitter implements Visitor {
       emitGETSTATIC(decl.I.spelling, VCtoJavaType(decl.T));
     } else {
       decl = (Decl) ast.I.decl; // Both ParaDecl and LocalVarDecl
-      if (decl.T.equals(StdEnvironment.floatType)) {
+      if (decl.T.isArrayType()) {
+        emitALOAD(decl.index);
+      } else if (decl.T.equals(StdEnvironment.floatType)) {
         emitFLOAD(decl.index);
       } else { // boolean and int type, var cannot be void type (checked by checker)
         emitILOAD(decl.index);
@@ -636,6 +649,22 @@ public final class Emitter implements Visitor {
 
   // The following method appends an instruction directly into the JVM
   // Code Store. It is called by all other overloaded emit methods.
+
+  private void emitASTORE(int index) {
+    if (index < 4) {
+      emit(JVM.ASTORE + "_" + index);
+    } else {
+      emit(JVM.ASTORE, index);
+    }
+  }
+
+  private void emitALOAD(int index) {
+    if (index < 4) {
+      emit(JVM.ALOAD + "_" + index);
+    } else {
+      emit(JVM.ALOAD, index);
+    }
+  }
 
   private void emit(String s) {
     JVM.append(new Instruction(s));
@@ -801,20 +830,18 @@ public final class Emitter implements Visitor {
   }
 
   private String VCtoJavaType(Type t) {
-    if (t.equals(StdEnvironment.booleanType))
-      return "Z";
-    else if (t.equals(StdEnvironment.intType))
-      return "I";
-    else if (t.equals(StdEnvironment.floatType))
-      return "F";
-    else // if (t.equals(StdEnvironment.voidType))
-      return "V";
-  }
-
-  @Override
-  public Object visitEmptyArrayExprList(EmptyArrayExprList ast, Object o) {
-    // TODO Auto-generated method stub
-    throw new UnsupportedOperationException("Unimplemented method 'visitEmptyArrayExprList'");
+    if (t.isArrayType()) {
+      return "[" + VCtoJavaType(((ArrayType) t).T);
+    } else {
+      if (t.equals(StdEnvironment.booleanType))
+        return "Z";
+      else if (t.equals(StdEnvironment.intType))
+        return "I";
+      else if (t.equals(StdEnvironment.floatType))
+        return "F";
+      else // if (t.equals(StdEnvironment.voidType))
+        return "V";
+    }
   }
 
   @Override
@@ -960,7 +987,6 @@ public final class Emitter implements Visitor {
   @Override
   public Object visitUnaryExpr(UnaryExpr ast, Object o) {
     String op = ast.O.spelling;
-    Frame frame = (Frame) o;
 
     ast.E.visit(this, o);
     if (op.equals("i2f")) {
@@ -970,23 +996,8 @@ public final class Emitter implements Visitor {
     } else if (op.equals("f-")) {
       emit(JVM.FNEG);
     } else if (op.equals("i!")) {
-      // if it is false on top of the stack, consume and go to l1 and leave a true on
-      // top of the stack
-      String l1 = frame.getNewLabel();
-      String l2 = frame.getNewLabel();
-      emit(JVM.IFEQ, l1);
-      // otherwise it is true on top of the stack, consume and leave a false
-      emitBCONST(false);
-      emit(JVM.GOTO, l2);
-      emit(l1 + ":");
-      emitBCONST(true);
-      emit(l2 + ":");
-
-      // Since we do not have XOR instruction, this is very inefficient.
-      // it should literall be:
-      // iconst_1 ; original value
-      // iconst_1 ; operator !
-      // xor ; result
+      emit(JVM.ICONST_1);
+      emit(JVM.IXOR);
     }
     return null;
   }
@@ -1073,16 +1084,34 @@ public final class Emitter implements Visitor {
 
   @Override
   public Object visitArrayInitExpr(ArrayInitExpr ast, Object o) {
+    ast.IL.visit(this, o);
     return null;
   }
 
   @Override
   public Object visitArrayExprList(ArrayExprList ast, Object o) {
+    ast.E.visit(this, o);
+    ast.EL.visit(this, o);
+    return null;
+  }
+
+  @Override
+  public Object visitEmptyArrayExprList(EmptyArrayExprList ast, Object o) {
     return null;
   }
 
   @Override
   public Object visitArrayExpr(ArrayExpr ast, Object o) {
+    ast.V.visit(this, o); // generates aload
+    ast.E.visit(this, o); // gnerates iconst_<n>
+    // generates iaload or faload
+    if (ast.type.isFloatType()) {
+      emit(JVM.FALOAD);
+    } else if (ast.type.isBooleanType()) {
+      emit(JVM.BALOAD);
+    } else {
+      emit(JVM.IALOAD);
+    }
     return null;
   }
 
@@ -1124,9 +1153,30 @@ public final class Emitter implements Visitor {
 
     } else if (ast.E1 instanceof ArrayExpr) {
 
+      // Dont need the iaload or faload instruction for LHS array expressions, so
+      // instead of calling ast.E1.visit(this, o); we manually visit both V and E of
+      // ast.E1
+
+      ArrayExpr arrayExpr = (ArrayExpr) ast.E1;
+      arrayExpr.V.visit(this, o);
+      arrayExpr.E.visit(this, o);
+      // eg
+      // aload_1
+      // iconst_<index>
+
+      ast.E2.visit(this, o);
+      // eg iconst_1 ...
+
+      // generate lvalue store instruction
+      if (ast.E2.type.isFloatType()) {
+        emit(JVM.FASTORE);
+      } else if (ast.E2.type.isBooleanType()) {
+        emit(JVM.BASTORE);
+      } else {
+        emit(JVM.IASTORE);
+      }
     }
 
-    // TODO: arrays
     return null;
   }
 

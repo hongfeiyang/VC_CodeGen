@@ -170,7 +170,17 @@ public final class JVM {
 
       DUP = "dup",
       POP = "pop",
-      NOP = "nop";
+      NOP = "nop",
+
+      // Array instructions
+      NEWARRAY = "newarray",
+      ANEWARRAY = "anewarray",
+      FASTORE = "fastore",
+      BASTORE = "bastore",
+      IASTORE = "iastore",
+      IALOAD = "iaload",
+      FALOAD = "faload",
+      BALOAD = "baload";
 
   // Limitations of the JVM
 
