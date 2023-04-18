@@ -171,6 +171,7 @@ public final class JVM {
       DUP = "dup",
       POP = "pop",
       NOP = "nop",
+      DUP_X2 = "dup_x2",
 
       // Array instructions
       NEWARRAY = "newarray",

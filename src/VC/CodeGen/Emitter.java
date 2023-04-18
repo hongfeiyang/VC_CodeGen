@@ -255,10 +255,12 @@ public final class Emitter implements Visitor {
       emit(JVM.RETURN);
     } else if (ast.E.type.isFloatType()) {
       emit(JVM.FRETURN);
+      frame.pop();
     } else if (ast.E.type.isIntType() || ast.E.type.isBooleanType()) {
       // Int type and boolean type (which also translates to int)
       // Array Var also eventually resolves to boolean float and int
       emit(JVM.IRETURN);
+      frame.pop();
     }
     // What about void expressions? e.g:
     // void f() {
@@ -514,7 +516,6 @@ public final class Emitter implements Visitor {
       // put size on top of the stack, size is guarenteed by checker?
       arrayType.E.visit(this, o);
       emit(JVM.NEWARRAY, arrayType.T.toString());
-      frame.push();
 
       if (ast.E.isEmptyExpr()) {
         emitASTORE(ast.index);
@@ -1164,7 +1165,7 @@ public final class Emitter implements Visitor {
     Frame frame = (Frame) o;
 
     ast.V.visit(this, o); // generates aload
-    ast.E.visit(this, o); // gnerates iconst_<n>
+    ast.E.visit(this, o); // generates iconst_<n>
     // generates iaload or faload
     if (ast.type.isFloatType()) {
       emit(JVM.FALOAD);
@@ -1234,6 +1235,13 @@ public final class Emitter implements Visitor {
       ast.E2.visit(this, o);
       // eg iconst_1 ...
 
+      if (ast.parent instanceof AssignExpr) {
+        // For assignment chaining in AssignExpr
+        // int a = b[0] = c = 1;
+        emit(JVM.DUP_X2);
+        frame.push();
+      }
+
       // generate lvalue store instruction
       if (ast.E2.type.isFloatType()) {
         emit(JVM.FASTORE);
@@ -1242,7 +1250,7 @@ public final class Emitter implements Visitor {
       } else {
         emit(JVM.IASTORE);
       }
-      frame.pop();
+      frame.pop(3);
     }
 
     return null;
